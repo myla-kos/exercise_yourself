@@ -3,11 +3,11 @@ from tkinter import ttk
 from tkinter import messagebox
 from function import *
 import random
-
-
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 csv_file_path = 'activity_level.csv'
+
 
 def csv_to_list(file_path):
     with open(file_path, 'r') as file:
@@ -37,9 +37,18 @@ class Month():
         self.frame = ttk.Frame(parent)
         self.name = name
         parent.add(self.frame, text=self.name)
-        self.day_combobox(days)
-        save_button = tk.Button(self.frame, text="Save", command=self.save)
-        save_button.grid(row=10, column=5)
+        self.days = days
+        self.day_combobox(self.days)
+        self.frame.configure(borderwidth=10, padding=20, relief="solid", cursor="heart")
+        save_button = tk.Button(self.frame, text="Save", command=self.save, background="#CC99FF", foreground="black", font=("Helvetica", 11), borderwidth=2, relief="raised",)
+        save_button.grid(row=10, column=2, padx=10, pady=10, sticky="news")
+        statisticsbutton = tk.Button(self.frame, text="Statistics", relief="flat", background="#ccc", command=lambda: self.step_chart(self.name, self.days))
+        statisticsbutton.grid(row=11, column=0, padx=10, pady=10, sticky="w")
+        exercisebutton = tk.Button(self.frame, text="Exercise Stats", relief="flat", background="#ccc",
+                                     command=lambda: self.most_popular_exercise(self.name))
+        exercisebutton.grid(row=12, column=0, padx=10, pady=10, sticky="w")
+
+
 
     def save(self):
         if self.dayscombo.get() != "":
@@ -51,10 +60,10 @@ class Month():
             edit_entry(month_name, number_day, water_level, step_amount, type_exercise)
 
     def day_combobox(self, days):
-        daylabel = tk.Label(self.frame, text="Select the day: ")
+        daylabel = tk.Label(self.frame, text="Select the day: ", bd=2, font=("Arial", 11))
         daylabel.grid(row=0, column=0)
-        self.dayscombo = ttk.Combobox(self.frame, values=[str(i) for i in range(1, days + 1)])
-        self.dayscombo.grid(row=0, column=1)
+        self.dayscombo = ttk.Combobox(self.frame, values=[str(i) for i in range(1, days + 1)], font=("Arial", 9))
+        self.dayscombo.grid(row=0, column=1, padx=20, pady=20)
         self.dayscombo.bind("<<ComboboxSelected>>", self.on_select_day)
 
     def on_select_day(self, event):
@@ -63,26 +72,35 @@ class Month():
             self.water_intake()
             self.steps_count()
             self.exercise()
+            self.destroy_previous_day_info()
             self.day_information(selection)
+
 
     def day_information(self, date_to_search):
         for line in activity_list:
             if line[0] == self.name and line[1] == date_to_search:
-                recordedwater = tk.Label(self.frame, text="Current water:")
+                recordedwater = tk.Label(self.frame, text="Current water:", font=("Arial", 10))
                 recordedwater.grid(row=6, column=2)
-                recordedsteps = tk.Label(self.frame, text="Recorded steps: ")
+                recordedsteps = tk.Label(self.frame, text="Recorded steps: ", font=("Arial", 10))
                 recordedsteps.grid(row=7, column=2)
-                recordedwateramount = tk.Label(self.frame, text=line[2])
+                recordedwateramount = tk.Label(self.frame, text=line[2], font=("Arial", 10))
                 recordedwateramount.grid(row=6, column=3)
-                recordedstepsamount = tk.Label(self.frame, text=line[3])
+                recordedstepsamount = tk.Label(self.frame, text=line[3], font=("Arial", 10))
                 recordedstepsamount.grid(row=7, column=3)
+                self.recorded_labels = [recordedwater, recordedwateramount, recordedsteps, recordedstepsamount]
+
+    def destroy_previous_day_info(self):
+        if hasattr(self, 'recorded_labels'):
+            for label in self.recorded_labels:
+                label.destroy()
+
 
     def on_exercise_select(self, event):
         if self.exercisecombo.get() == "-Surprise me-":
             self.random_exercise()
 
     def random_exercise(self):
-        cool_ideas = ["Parkour", "Hula hooping", "Pole dancing", "Martial Arts", "Rock climbing"]
+        cool_ideas = ["Parkour", "Hula hooping", "Pole dancing", "Martial Arts", "Rock climbing", "Jump rope", "Fencing", "Aerial yoga"]
         random_exercise = random.choice(cool_ideas)
         answer = tk.messagebox.askyesno(title="Random exercise", message=f"Your random exercise is {random_exercise}.")
         if answer:
@@ -91,24 +109,70 @@ class Month():
             self.random_exercise()
 
     def water_intake(self):
-        waterlabel = tk.Label(self.frame, text="Water Level: ")
+        waterlabel = tk.Label(self.frame, text="Water Level: ", font=("Arial", 12), foreground="black", background="#9370DB", borderwidth=2, relief="raised")
         waterlabel.grid(row=6, column=0, padx=10, pady=10, sticky="news")
-        self.waterinputlabel = tk.Entry(self.frame)
+        self.waterinputlabel = tk.Entry(self.frame, font=("Arial", 11), borderwidth=2)
         self.waterinputlabel.grid(row=6, column=1, padx=10, pady=10)
 
     def steps_count(self):
-        steplabel = tk.Label(self.frame, text="Step count: ")
+        steplabel = tk.Label(self.frame, text="Step count: ", font=("Arial", 12), foreground="black", background="#9370DB", borderwidth=2, relief="raised")
         steplabel.grid(row=7, column=0, padx=10, pady=10, sticky="news")
-        self.stepinputlabel = tk.Entry(self.frame)
+        self.stepinputlabel = tk.Entry(self.frame, font=("Arial", 11), borderwidth=2)
         self.stepinputlabel.grid(row=7, column=1, padx=10, pady=10)
 
     def exercise(self):
-        exerciselabel = tk.Label(self.frame, text="Exercise: ")
+        exerciselabel = tk.Label(self.frame, text="Exercise: ", font=("Arial", 12), foreground="black", background="#9370DB", borderwidth=2, relief="raised")
         exerciselabel.grid(row=8, column=0, padx=10, pady=10, sticky="news")
-        self.exercisecombo = ttk.Combobox(self.frame, values=["Aerobics", "Cycling", "Dancing", "HIIT", "Running", "Strength Training", "Swimming", "Yoga", "-Surprise me-"])
+        self.exercisecombo = ttk.Combobox(self.frame, font=("Arial", 9), values=["Aerobics", "Cycling", "Dancing", "HIIT", "Running", "Strength Training", "Swimming", "Yoga", "-Surprise me-"])
         self.exercisecombo.grid(row=8, column=1)
         choice = self.exercisecombo.get()
         self.exercisecombo.bind("<<ComboboxSelected>>", self.on_exercise_select)
+
+    def step_chart(self, name, days):
+        new_list = []
+        for row in activity_list:
+            if row[0] == name:
+                new_list.append((int(row[1]), int(row[2])))
+
+        for day in range(1, self.days + 1):
+            if day not in [item[0] for item in new_list]:
+                variable = (day, 0)
+                new_list.append(variable)
+        new_list.sort()
+
+        days = [item[0] for item in new_list]
+        steps = [item[1] for item in new_list]
+        plt.figure(num='Steps')
+        plt.xlabel('Days')
+        plt.ylabel('Steps')
+        plt.title('Steps Count for ' + name)
+        plt.bar(days, steps)
+        plt.xticks(days)
+        plt.gcf().set_size_inches(10, 6)
+        plt.show()
+
+
+    def most_popular_exercise(self, name):
+        new_list = []
+        for row in activity_list:
+            if row[0] == name and row[4] != "":
+                new_list.append(row[4])
+
+        exercise_list = {}
+
+        for item in new_list:
+            if item in exercise_list:
+                exercise_list[item] += 1
+            else:
+                exercise_list[item] = 1
+
+        y = exercise_list.values()
+        mylabels = exercise_list.keys()
+        plt.figure(num='Exercise')
+        mycolors = ["BurlyWood", "Bisque", "Cornsilk", "Gold", "DarkKhaki", "GoldenRod", "Khaki", "LemonChiffon", "LightGoldenRodYellow"]
+
+        plt.pie(y, labels=mylabels, colors=mycolors, wedgeprops={"edgecolor":"gray", 'linewidth': 1, 'linestyle': 'solid', 'antialiased': True})
+        plt.show()
 
 def create_window():
     window = tk.Tk()

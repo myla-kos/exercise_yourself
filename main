@@ -4,7 +4,6 @@ from tkinter import messagebox
 from function import *
 import random
 import matplotlib.pyplot as plt
-import numpy as np
 
 csv_file_path = 'activity_level.csv'
 
@@ -39,6 +38,14 @@ class Month():
         parent.add(self.frame, text=self.name)
         self.days = days
         self.day_combobox(self.days)
+        with open('settings.txt', 'r') as file:
+            lines = file.readlines()
+            self.default_water_value = lines[0].strip()
+            self.default_step_value = lines[1].strip()
+            default_exercises_str = lines[2].strip()
+            default_exercises_str = default_exercises_str[0:]
+            self.default_exercises = [exercise.strip() for exercise in default_exercises_str.split(",")]
+
         self.frame.configure(borderwidth=10, padding=20, relief="solid", cursor="heart")
         save_button = tk.Button(self.frame, text="Save", command=self.save, background="#CC99FF", foreground="black", font=("Helvetica", 11), borderwidth=2, relief="raised",)
         save_button.grid(row=10, column=2, padx=10, pady=10, sticky="news")
@@ -47,7 +54,8 @@ class Month():
         exercisebutton = tk.Button(self.frame, text="Exercise Stats", relief="flat", background="#ccc",
                                      command=lambda: self.most_popular_exercise(self.name))
         exercisebutton.grid(row=12, column=0, padx=10, pady=10, sticky="w")
-
+        settingsbutton = tk.Button(self.frame, text="Settings", command=self.settings)
+        settingsbutton.grid(row=13, column=0, padx=10, pady=10, sticky="w")
 
 
     def save(self):
@@ -57,7 +65,10 @@ class Month():
             water_level = self.waterinputlabel.get()
             step_amount = self.stepinputlabel.get()
             type_exercise = self.exercisecombo.get()
-            edit_entry(month_name, number_day, water_level, step_amount, type_exercise)
+            if water_level.isnumeric() and step_amount.isnumeric():
+                edit_entry(month_name, number_day, water_level, step_amount, type_exercise)
+            else:
+                tk.messagebox.showwarning(title="Error!", message="Please enter a numeric value!")
 
     def day_combobox(self, days):
         daylabel = tk.Label(self.frame, text="Select the day: ", bd=2, font=("Arial", 11))
@@ -75,8 +86,104 @@ class Month():
             self.destroy_previous_day_info()
             self.day_information(selection)
 
+    def settings(self):
+        settings_window = tk.Toplevel(self.frame)
+        settings_window.title("Edit")
+        settingslabel = tk.Label(settings_window, text="Settings")
+        settingslabel.grid(row=0, column=0, padx=10, pady=10)
+
+        stepsetting = tk.Label(settings_window, text="Choose step count: ")
+        stepsetting.grid(row=3, column=0, padx=10, pady=10)
+        self.stepcurrent = tk.Label(settings_window, text=self.default_step_value)
+        self.stepcurrent.grid(row=3, column=1, padx=10, pady=10)
+        self.stepsettingbox = tk.Entry(settings_window)
+        self.stepsettingbox.grid(row=3, column=2, padx=10, pady=10)
+
+        watersetting = tk.Label(settings_window, text="Set water intake: ")
+        watersetting.grid(row=4, column=0, padx=10, pady=10)
+        self.watercurrent = tk.Label(settings_window, text=self.default_water_value)
+        self.watercurrent.grid(row=4, column=1, padx=10, pady=10)
+        self.watersettingbox = tk.Entry(settings_window)
+        self.watersettingbox.grid(row=4, column=2, padx=10, pady=10)
+
+        exercisebox = tk.Label(settings_window, text="Edit Exercise list: ")
+        exercisebox.grid(row=5, column=0, padx=10, pady=10)
+        self.exercisesetting = ttk.Combobox(settings_window, values=self.default_exercises)
+        self.exercisesetting.grid(row=5, column=1, padx=10, pady=10)
+
+        add_button = tk.Button(settings_window, text="Add", command=self.add_exercise)
+        remove_button = tk.Button(settings_window, text="Remove", command=self.remove_exercise)
+        remove_button.grid(row=5, column=2, padx=10, pady=10)
+
+        def on_combobox_select(event):
+            selection = self.exercisesetting.get()
+            if selection == "-Blank-":
+                add_button.grid(row=5, column=2, padx=10, pady=10)
+                remove_button.grid_remove()
+            else:
+                add_button.grid_remove()
+                remove_button.grid(row=5, column=2, padx=10, pady=10)
+
+        self.exercisesetting.bind("<<ComboboxSelected>>", on_combobox_select)
+
+        editbutton = tk.Button(settings_window, text="Edit", command=self.edit_settings)
+        editbutton.grid(row=8, column=5, padx=10, pady=10)
+
+    def add_exercise(self):
+        exercise = self.exercisesetting.get()
+        if exercise in self.default_exercises:
+            tk.messagebox.showwarning(title="Oops!", message="Exercise already in a list!")
+        else:
+            self.default_exercises.append(exercise)
+            with open('settings.txt', 'r') as file:
+                lines = file.readlines()
+            lines[2] = ','.join(sorted(self.default_exercises)) + '\n'
+            with open('settings.txt', 'w') as file:
+                file.writelines(lines)
+            tk.messagebox.showinfo(title="Success", message="Exercise added!")
+
+    def remove_exercise(self):
+        exercise = self.exercisesetting.get()
+        if exercise == "-Blank" or exercise == "-Surprise me-":
+            tk.messagebox.showwarning(title="Warning!", message="Default value cannot be removed!")
+        else:
+            self.default_exercises.remove(exercise)
+            with open('settings.txt', 'r') as file:
+                lines = file.readlines()
+            lines[2] = ','.join(sorted(self.default_exercises)) + '\n'
+            with open('settings.txt', 'w') as file:
+                file.writelines(lines)
+            tk.messagebox.showinfo(title="Success", message="Removed!")
+
+    def edit_settings(self):
+        value = self.stepsettingbox.get()
+        value2 = self.watersettingbox.get()
+
+        if value.isdigit() and value2.isdigit():
+            self.stepcurrent.config(text=value)
+            self.watercurrent.config(text=value2)
+            self.default_step_value = value
+            self.default_water_value = value2
+
+            with open('settings.txt', 'r') as file:
+                lines = file.readlines()
+
+                # Update the first two lines with new values
+            lines[0] = f"{self.default_water_value}\n"
+            lines[1] = f"{self.default_step_value}\n"
+
+            # Write the updated contents back to the file
+            with open('settings.txt', 'w') as file:
+                file.writelines(lines)
+
+            tk.messagebox.showinfo(title="Success", message="Settings updated!")
+        else:
+            tk.messagebox.showerror(title="Error",
+                                    message="Please enter numeric values for water intake and step count.")
 
     def day_information(self, date_to_search):
+        checkmark = tk.Label(self.frame, text="✅")
+        recorded_labels = []
         for line in activity_list:
             if line[0] == self.name and line[1] == date_to_search:
                 recordedwater = tk.Label(self.frame, text="Current water:", font=("Arial", 10))
@@ -85,14 +192,20 @@ class Month():
                 recordedsteps.grid(row=7, column=2)
                 recordedwateramount = tk.Label(self.frame, text=line[2], font=("Arial", 10))
                 recordedwateramount.grid(row=6, column=3)
+                if int(line[2]) > int(self.default_water_value)-1:
+                    checkmark.grid(row=6, column=4)
                 recordedstepsamount = tk.Label(self.frame, text=line[3], font=("Arial", 10))
                 recordedstepsamount.grid(row=7, column=3)
-                self.recorded_labels = [recordedwater, recordedwateramount, recordedsteps, recordedstepsamount]
+                if int(line[3]) > int(self.default_step_value)-1:
+                    checkmark.grid(row=7, column=4)
+                recorded_labels.extend([recordedwater, recordedwateramount, recordedsteps, recordedstepsamount, checkmark])
+                self.recorded_labels = recorded_labels
 
     def destroy_previous_day_info(self):
         if hasattr(self, 'recorded_labels'):
             for label in self.recorded_labels:
                 label.destroy()
+            self.recorded_labels = []
 
 
     def on_exercise_select(self, event):
@@ -123,7 +236,7 @@ class Month():
     def exercise(self):
         exerciselabel = tk.Label(self.frame, text="Exercise: ", font=("Arial", 12), foreground="black", background="#9370DB", borderwidth=2, relief="raised")
         exerciselabel.grid(row=8, column=0, padx=10, pady=10, sticky="news")
-        self.exercisecombo = ttk.Combobox(self.frame, font=("Arial", 9), values=["Aerobics", "Cycling", "Dancing", "HIIT", "Running", "Strength Training", "Swimming", "Yoga", "-Surprise me-"])
+        self.exercisecombo = ttk.Combobox(self.frame, font=("Arial", 9), values=self.default_exercises)
         self.exercisecombo.grid(row=8, column=1)
         choice = self.exercisecombo.get()
         self.exercisecombo.bind("<<ComboboxSelected>>", self.on_exercise_select)
@@ -132,7 +245,7 @@ class Month():
         new_list = []
         for row in activity_list:
             if row[0] == name:
-                new_list.append((int(row[1]), int(row[2])))
+                new_list.append((int(row[1]), int(row[3])))
 
         for day in range(1, self.days + 1):
             if day not in [item[0] for item in new_list]:
@@ -142,11 +255,12 @@ class Month():
 
         days = [item[0] for item in new_list]
         steps = [item[1] for item in new_list]
+        colors = ['green' if step >= int(self.default_step_value) else 'gray' for step in steps]
         plt.figure(num='Steps')
         plt.xlabel('Days')
         plt.ylabel('Steps')
         plt.title('Steps Count for ' + name)
-        plt.bar(days, steps)
+        plt.bar(days, steps, color=colors)
         plt.xticks(days)
         plt.gcf().set_size_inches(10, 6)
         plt.show()
